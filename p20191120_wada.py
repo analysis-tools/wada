@@ -27,8 +27,8 @@ import matplotlib.pyplot as plt
 
 #Path(s) to data #UPDATE TO READ ALL SUBFOLDERS IN A FOLDER
 data_folder = 'Z:\\Data\\Wada_Data_Swiss'
-filenames = ['Pilot 1\\wadatest.edf', 
-             'Pilot 2\\NEEDS TO BE EXPORTED AS EDF', 
+filenames = ['Pilot_1\\wadatest.edf', # this file is already in bipolar reference
+             'Pilot_2\\NEEDS TO BE EXPORTED AS EDF', 
              'Visit_JFS_BEJ\\Wadatest_14_06_2019_EDF.edf']
 savefolder = 'analysis'
 savenames = ['pilot1', 
@@ -36,7 +36,7 @@ savenames = ['pilot1',
              'pilot3']
 
 # select file to work on
-data_num = 2
+data_num = 0
 data_raw_file = os.path.join(data_folder, 
                                     filenames[data_num])
 
@@ -47,23 +47,23 @@ data_raw_file = os.path.join(data_folder,
 raw = mne.io.read_raw_edf(data_raw_file, misc=['ECG EKG-REF'], 
                           stim_channel='Event EVENT-REF', preload=True)
 
-## THIS FUNCTION DOES NOT WORK ON MY COMPUTER!
-##Convenience function to trim channel names
-#def ch_rename(oldname): 
-#    return re.findall(r"\s.+-", oldname)[0][1:-1]
-#
-##Trim channel names
-#raw.rename_channels(ch_rename)
+# THIS FUNCTION DOES NOT WORK ON MY COMPUTER!
+#Convenience function to trim channel names
+def ch_rename(oldname): 
+    return re.findall(r"\s.+-", oldname)[0][1:-1]
 
-#Print overall and detailed info about raw dataset
-print(raw)
-print(raw.info)
+#Trim channel names
+raw.rename_channels(ch_rename)
 
 #Read montage
 montage = mne.channels.make_standard_montage('standard_postfixed')
 
 #Set montage
 raw.set_montage(montage,raise_if_subset=False)
+
+#Print overall and detailed info about raw dataset
+print(raw)
+print(raw.info)
 
 ##Plot sensor locations
 #raw.plot_sensors(show_names=True)
