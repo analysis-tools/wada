@@ -27,8 +27,8 @@ import matplotlib.pyplot as plt
 
 #Path(s) to data #UPDATE TO READ ALL SUBFOLDERS IN A FOLDER
 data_folder = 'Z:\\Data\\Wada_Data_Swiss'
-filenames = ['Pilot_1\\wadatest.edf', # this file is already in bipolar reference
-             'Pilot_2\\NEEDS TO BE EXPORTED AS EDF', 
+filenames = ['Pilot_1\\wadatest.edf', # this file is already in bipolar reference (problem cant do ica)
+             'Pilot_2\\pilot2.edf', 
              'Visit_JFS_BEJ\\Wadatest_14_06_2019_EDF.edf']
 savefolder = 'analysis'
 savenames = ['pilot1', 
@@ -36,7 +36,7 @@ savenames = ['pilot1',
              'pilot3']
 
 # select file to work on
-data_num = 0
+data_num = 2
 data_raw_file = os.path.join(data_folder, 
                                     filenames[data_num])
 
@@ -46,14 +46,14 @@ data_raw_file = os.path.join(data_folder,
 #Read data
 raw = mne.io.read_raw_edf(data_raw_file, misc=['ECG EKG-REF'], 
                           stim_channel='Event EVENT-REF', preload=True)
-
-# THIS FUNCTION DOES NOT WORK ON MY COMPUTER!
-#Convenience function to trim channel names
-def ch_rename(oldname): 
-    return re.findall(r"\s.+-", oldname)[0][1:-1]
-
-#Trim channel names
-raw.rename_channels(ch_rename)
+#
+## THIS FUNCTION DOES NOT WORK ON MY COMPUTER!
+##Convenience function to trim channel names
+#def ch_rename(oldname): 
+#    return re.findall(r"\s.+-", oldname)[0][1:-1]
+#
+##Trim channel names
+#raw.rename_channels(ch_rename)
 
 #Read montage
 montage = mne.channels.make_standard_montage('standard_postfixed')
@@ -62,8 +62,8 @@ montage = mne.channels.make_standard_montage('standard_postfixed')
 raw.set_montage(montage,raise_if_subset=False)
 
 #Print overall and detailed info about raw dataset
-print(raw)
 print(raw.info)
+raw.info['ch_names']
 
 ##Plot sensor locations
 #raw.plot_sensors(show_names=True)
@@ -135,7 +135,7 @@ epochs.plot(n_epochs=10, n_channels=22, scalings=dict(eeg=3e-4, misc=1e-3, stim=
 #Set up and fit the ICA
 ica = mne.preprocessing.ICA(method = 'infomax', fit_params=dict(extended=True),
                             random_state=0, max_iter=1000,
-                            n_components=epochs.info['nchan'])
+                            n_components=epochs.info['nchan']-len(epochs.info['bads']))
 
 ica.fit(epochs, picks='eeg')
 
@@ -167,18 +167,20 @@ epochs.plot(scalings=dict(eeg=3e-4),n_epochs=5)
 
 #Compare power spectra
 epochs.plot_psd(fmax=90)
-
-#Set bipolar (double banana) reference
-anodes = ['Fp2', 'F8', 'T4', 'T6', 'Fp1', 'F7', 'T3', 'T5', 
-          'Fp2', 'F4', 'C4', 'P4', 'Fp1', 'F3', 'C3', 'P3',
-          'Fz', 'Cz',
-          'T6', 'T5',
-          'T4', 'T3']
-cathodes = ['F8', 'T4', 'T6', 'O2', 'F7', 'T3', 'T5', 'O1', 
-            'F4', 'C4', 'P4', 'O2', 'F3', 'C3', 'P3', 'O1',
-            'Cz', 'Pz',
-            'A2', 'A1',
-            'T2', 'T1']
+# =============================================================================
+# 
+# #Set bipolar (double banana) reference
+# anodes = ['Fp2', 'F8', 'T4', 'T6', 'Fp1', 'F7', 'T3', 'T5', 
+#           'Fp2', 'F4', 'C4', 'P4', 'Fp1', 'F3', 'C3', 'P3',
+#           'Fz', 'Cz',
+#           'T6', 'T5',
+#           'T4', 'T3']
+# cathodes = ['F8', 'T4', 'T6', 'O2', 'F7', 'T3', 'T5', 'O1', 
+#             'F4', 'C4', 'P4', 'O2', 'F3', 'C3', 'P3', 'O1',
+#             'Cz', 'Pz',
+#             'A2', 'A1',
+#             'T2', 'T1']
+# =============================================================================
 
 # Alternative setup (not requiring reordering, and with no overlap)
 anodes = ['T1', 
@@ -212,19 +214,21 @@ epochs_bipolar.drop_channels(epochs.info['ch_names'])
 print(epochs_bipolar)
 print(epochs_bipolar.info['ch_names'])
 
-# reordering bipolar channels (given original setup of channels)
-ch_order = ['Fp1-F7', 'F7-T3', 'T3-T5', 'T5-O1', 
-            'Fp1-F3', 'F3-C3', 'C3-P3', 'P3-O1',  
-            'Fz-Cz', 'Cz-Pz', 
-            'Fp2-F4', 'F4-C4', 'C4-P4', 'P4-O2', 
-            'Fp2-F8', 'F8-T4', 'T4-T6', 'T6-O2', 
-            'T3-T1', 
-            'T5-A1', 
-            'T4-T2',
-            'T6-A2']
-
-epochs_bipolar.reorder_channels(ch_order)
-
+# =============================================================================
+# # reordering bipolar channels (given original setup of channels)
+# ch_order = ['Fp1-F7', 'F7-T3', 'T3-T5', 'T5-O1', 
+#             'Fp1-F3', 'F3-C3', 'C3-P3', 'P3-O1',  
+#             'Fz-Cz', 'Cz-Pz', 
+#             'Fp2-F4', 'F4-C4', 'C4-P4', 'P4-O2', 
+#             'Fp2-F8', 'F8-T4', 'T4-T6', 'T6-O2', 
+#             'T3-T1', 
+#             'T5-A1', 
+#             'T4-T2',
+#             'T6-A2']
+# 
+# epochs_bipolar.reorder_channels(ch_order)
+# 
+# =============================================================================
 #Plot re-referenced data (bipolar double banana reference)
 epochs_bipolar.plot(scalings=dict(eeg=1e-4, misc=1e-3, stim=100),
                     n_epochs=5,title='epoched and cleaned data with double banana reference')
@@ -239,7 +243,7 @@ preprocessed = epochs_bipolar.filter(1, 30, filter_length='auto',
                  fir_design='firwin')
 
 #Plot cropped data
-preprocessed.plot(scalings=dict(eeg=1e-4),title='processed data',n_epochs=1)
+preprocessed.plot(scalings=dict(eeg=1e-4),title='processed data',n_epochs=5)
 
 
 ### CALCULATING THE MEASURES ###
@@ -310,6 +314,7 @@ for i in range(0,data.shape[0]) :
 ## Calculating Time-Frequency (multitaper)
 sfreq = preprocessed.info['sfreq']
 freqs = mne.time_frequency.psd_array_multitaper(all_data[0], sfreq, fmin=1, fmax=30, adaptive=True)[1]
+trials = all_data.shape[0]+1
 # all data
 TF = np.transpose(np.array([np.median(mne.time_frequency.psd_array_multitaper(d, sfreq, fmin=1, fmax=30, adaptive=True)[0],0) for d in all_data]))
 dB = np.array([tf/np.mean(tf[:int(trials/2-1)]) for tf in TF])
@@ -326,7 +331,7 @@ dBright = np.array([tf/np.mean(tf[:int(trials/2-1)]) for tf in TFright])
 # =============================================================================
 #      
 # #Plot LZC vs epoch number (normalized)
-# trials = data.shape[0]+1
+# 
 # fig = plt.figure()
 # ax = fig.add_axes([0.1, 0.1, 0.85, 0.85])
 # plt.step(range(1,trials), LZCcontra/LZCcontra[:int(trials/2.-1)].mean(),where='mid')
@@ -498,8 +503,9 @@ savedata = {
                   }
         }
 
-
-os.mkdir(save_file)
+if not os.path.isdir(save_file):
+    os.mkdir(save_file)
+    
 fig_TF.savefig(save_file+'\\timefreq.png')
 fig_LZs.savefig(save_file+'\\LZ_s.png')
 fig_LZt.savefig(save_file+'\\LZ_t.png')
